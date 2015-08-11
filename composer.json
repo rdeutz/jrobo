@@ -1,0 +1,21 @@
+{
+  "name": "rdeutz/jrobo",
+  "description": "Joomla specific extension of the Robo task runner",
+  "license": "GPL",
+  "authors": [
+    {
+      "name": "Robert Deutz",
+      "email": "rdeutz@googlemail.com"
+    }
+  ],
+  "autoload":{
+    "psr-4":{
+      "JRobo\\":"src"
+    }
+  },
+  "bin":["robo"],
+  "require": {
+    "php": ">=5.4.0",
+    "codegyre/robo": "0.5.*"
+  }
+}
