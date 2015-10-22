@@ -3,7 +3,7 @@
 namespace JRobo\Task\Component;
 
 
-use JRobo\Tasks\Component\Map;
+use JRobo\Task\Component\Map;
 
 trait loadTasks
 {
@@ -11,9 +11,9 @@ trait loadTasks
      * @param $dirs
      * @return Map
      */
-    protected function taskMap($dir)
+    protected function taskMap($from, $to)
     {
-        return new Map($dir);
+        return new Map($from, $to);
     }
 
 }

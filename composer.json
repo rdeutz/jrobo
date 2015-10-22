@@ -13,7 +13,7 @@
       "JRobo\\":"src"
     }
   },
-  "bin":["robo"],
+  "bin":["jrobo"],
   "require": {
     "php": ">=5.4.0",
     "codegyre/robo": "0.5.*"

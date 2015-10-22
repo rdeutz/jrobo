@@ -1,34 +1,39 @@
 <?php
-namespace JRobo\Tasks\Component;
+
+namespace JRobo\Task\Component;
 
 use Robo\Result;
 use Robo\Task\BaseTask;
 use Robo\Contract\TaskInterface;
 use Robo\Exception\TaskException;
+use Robo\Task\FileSystem\FilesystemStack;
 
 class Map extends BaseTask implements TaskInterface
 {
-	protected $toDir = null;
+	protected $toDir    = null;
+
+	protected $codebase = null;
 
 	/**
 	 * Constructor.
 	 *
+	 * @param $formDir
 	 * @param $toDir
 	 */
-	public function __construct($toDir)
+	public function __construct($formDir, $toDir)
 	{
-		$this->toDir = $toDir;
+		$this->toDir    = $toDir;
+		$this->codebase = $formDir . '/code';
 	}
 
 	/**
 	 * Maps all parts of an extension into a Joomla! installation
-	 *
 	 */
 	public function run()
 	{
 		$toDir = $this->toDir;
 
-		$codeBase = __DIR__ . '/code';
+		$codeBase = $this->codebase;
 
 		if ( ! is_dir($codeBase))
 		{
@@ -53,10 +58,14 @@ class Map extends BaseTask implements TaskInterface
 			{
 				if (is_dir($codeBase . '/' . $element))
 				{
+
 					$method = 'process' . ucfirst($element);
+
+					$this->printTaskInfo('Check:' . $method);
 
 					if (method_exists($this, $method))
 					{
+						$this->printTaskInfo('Process:' . $method);
 						$this->$method($codeBase, $toDir);
 					}
 				}
@@ -65,11 +74,15 @@ class Map extends BaseTask implements TaskInterface
 
 		closedir($dirHandle);
 
-		return true;
+		$this->printTaskSuccess("Mapping executed");
+
+		return Result::success($this);
 	}
 
-	private function processAdministrator($codeBase, $toDir)
+	private function processAdministrator($codeBase, $toDir = null)
 	{
+		$toDir = $this->getToDir($toDir);
+
 		// Component directory
 		$this->processComponents($codeBase . '/administrator', $toDir . '/administrator');
 
@@ -80,8 +93,9 @@ class Map extends BaseTask implements TaskInterface
 		$this->processModules($codeBase . '/administrator', $toDir . '/administrator');
 	}
 
-	private function processComponents($codeBase, $toDir)
+	private function processComponents($codeBase, $toDir = null)
 	{
+		$toDir = $this->getToDir($toDir);
 		$base  = $codeBase . '/components';
 
 		// Component directory
@@ -99,8 +113,9 @@ class Map extends BaseTask implements TaskInterface
 		}
 	}
 
-	private function processLanguage($codeBase, $toDir)
+	private function processLanguage($codeBase, $toDir = null)
 	{
+		$toDir = $this->getToDir($toDir);
 		$base  = $codeBase . '/language';
 
 		if (is_dir($base))
@@ -128,23 +143,24 @@ class Map extends BaseTask implements TaskInterface
 		}
 	}
 
-	private function processLibraries($codeBase, $toDir)
+	private function processLibraries($codeBase, $toDir = null)
 	{
 		$this->mapDir('libraries', $codeBase, $toDir);
 	}
 
-	private function processMedia($codeBase, $toDir)
+	private function processMedia($codeBase, $toDir = null)
 	{
 		$this->mapDir('media', $codeBase, $toDir);
 	}
 
-	private function processModules($codeBase, $toDir)
+	private function processModules($codeBase, $toDir = null)
 	{
 		$this->mapDir('modules', $codeBase, $toDir);
 	}
 
-	private function processPlugings($codeBase, $toDir)
+	private function processPlugins($codeBase, $toDir = null)
 	{
+		$toDir = $this->getToDir($toDir);
 		$base  = $codeBase . '/plugins';
 
 		if (is_dir($base))
@@ -155,7 +171,7 @@ class Map extends BaseTask implements TaskInterface
 			{
 				if ($element != "." && $element != "..")
 				{
-					if (is_dir($element))
+					if (is_dir($base . '/' . $element))
 					{
 						$this->mapDir($element, $base, $toDir . '/plugins');
 					}
@@ -164,8 +180,9 @@ class Map extends BaseTask implements TaskInterface
 		}
 	}
 
-	private function mapDir($type, $codeBase, $toDir)
+	private function mapDir($type, $codeBase, $toDir = null)
 	{
+		$toDir = $this->getToDir($toDir);
 		$base  = $codeBase . '/' . $type;
 
 		// Check if dir exists
@@ -185,25 +202,35 @@ class Map extends BaseTask implements TaskInterface
 
 	private function symlink($source, $target)
 	{
-		$this->say('Source: ' . $source);
-		$this->say('Target: ' . $target);
+		$this->printTaskInfo('Source: ' . $source);
+		$this->printTaskInfo('Target: ' . $target);
 
-		return;
+		$fs = new FilesystemStack;
 
 		if (file_exists($target))
 		{
-			$this->_deleteDir($target);
+			$this->printTaskInfo('Delete Taget:' . $target);
+			$fs->remove($target);
 		}
 
 		try
 		{
-			$this->taskFileSystemStack()
-				->symlink($source, $target)
+			$fs->symlink($source, $target)
 				->run();
 		}
-		catch (Exception $e)
+		catch (\Exception $e)
 		{
-			$this->say('ERROR: ' . $e->message());
+			$this->printTaskError('ERROR: ' . $e->message());
 		}
+	}
+
+	private function getToDir($toDir=null)
+	{
+		if (is_null($toDir))
+		{
+			$toDir = $this->toDir;
+		}
+
+		return $toDir;
 	}
 }
